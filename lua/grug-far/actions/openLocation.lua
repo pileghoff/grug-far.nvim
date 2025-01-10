@@ -56,7 +56,7 @@ local timer = vim.uv.new_timer()
 --- if count > 0 given, it will use the result location with that number instead
 --- if increment is given, it will use the first location that is at least <increment> away from the current line
 ---@param params { buf: integer, context: GrugFarContext, increment: -1 | 1 | nil, count: number? }
-local function showLocation(params)
+local function showLocation(params, location, row)
   timer:stop()
   local buf = params.buf
   local context = params.context
@@ -65,7 +65,6 @@ local function showLocation(params)
   local grugfar_win = vim.fn.bufwinid(buf)
 
   local cursor_row = unpack(vim.api.nvim_win_get_cursor(grugfar_win))
-  local location, row = getLocation(buf, context, cursor_row, increment, count)
 
   if not location then
     return
@@ -114,6 +113,12 @@ local function showLocation(params)
       end,
     })
   end
+
+  pcall(
+    vim.api.nvim_win_set_cursor,
+    targetWin,
+    { location.lnum or 1, location.col and location.col - 1 or 0 }
+  )
 end
 
 local function openLocation(params)
@@ -133,18 +138,12 @@ local function openLocation(params)
     vim.api.nvim_win_set_cursor(grugfar_win, { row, 0 })
   end
 
-  pcall(
-    vim.api.nvim_win_set_cursor,
-    targetWin,
-    { location.lnum or 1, location.col and location.col - 1 or 0 }
-  )
-
   timer:stop()
   timer:start(
     1000,
     0,
     vim.schedule_wrap(function()
-      showLocation(params)
+      showLocation(params, location, row)
     end)
   )
 end
